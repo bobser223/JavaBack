@@ -9,7 +9,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class PostHandler {
+public class PutHandler {
     final int CLIENT_ID = 1234;
 
     public static ArrayList<NotificationInfo> fromByte2Array(String jsonBody, int clientID) {
@@ -34,12 +34,12 @@ public class PostHandler {
 
 
 
-    void handlePost(Socket socket, DataBaseWrapper db, String jsonBody) {
+    void handlePut(Socket socket, DataBaseWrapper db, String jsonBody) {
 
     }
 
 
-    public void  postNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody) {
+    public void  putNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody) {
         //jsonBody - bites of an array of notifications
 
         int clientID = this.CLIENT_ID; // FIXME: add aunthificator

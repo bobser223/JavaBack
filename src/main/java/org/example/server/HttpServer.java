@@ -6,6 +6,8 @@ import java.io.*;
 import java.net.*;
 
 
+
+
 public class HttpServer {
 
     int CLIENT_ID = 1234;
@@ -47,6 +49,22 @@ public class HttpServer {
         sendHttpNotFound(socket, "");
     }
 
+    static void sendHttpOk(Socket socket, String message){
+        try (OutputStream out = socket.getOutputStream()) {
+            byte[] body = message.getBytes();
+            String response = "HTTP/1.1 200 OK\r\n" +
+                    "Content-Type: text/plain\r\n" +
+                    "Content-Length: " + body.length + "\r\n" +
+                    "Connection: close\r\n" +
+                    "\r\n";
+
+            out.write(response.getBytes());
+            out.write(body);
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     static void sendHttpAuthError(Socket socket, String message) {
         try (OutputStream out = socket.getOutputStream()) {
@@ -104,13 +122,25 @@ public class HttpServer {
                 return;
             }
 
+            for (String parts: basicInfo){
+                System.out.println("Info " + parts);
+            }
 
                 //method
             if (basicInfo[0].equals("GET")) {
                 System.out.println("GET");
+
+                GetHandler getHandler = new GetHandler();
+                getHandler.handleGet(socket, db, in, basicInfo);
+
+                socket.close();
+                return;
+
                         //method
-            } else if (basicInfo[0].equals("PUT /")) {
+            } else if (basicInfo[0].equals("PUT")) {
                 System.out.println("PUT");
+                PutHandler putHandler = new PutHandler();
+
             }  else {
                 out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
                 out.flush();

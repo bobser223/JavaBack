@@ -11,10 +11,24 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import static org.example.Main.IS_DEBUG;
 import static org.example.server.HttpServer.sendHttpAuthError;
 import static org.example.server.HttpServer.sendHttpNotFound;
+import static org.example.server.HttpServer.sendHttpOk;
+
 
 public class GetHandler {
+    /*
+    GET /notifications/get/<specifications> HTTP/1.1
+    Host: 127.0.0.1:1488
+    Authorization: Basic dXNlcjpwYXNz
+    Connection-Type: application/json
+    Content-Length: <cnt>
+
+    {
+    jsons
+    }
+     */
 
     int CLIENT_ID = 1234;
 
@@ -31,7 +45,10 @@ public class GetHandler {
         String path = basicInfo[1];
 
 
-        String[] pathParts = path.split("/");
+        // Нормалізуємо шлях
+        String[] pathParts = path.replaceFirst("^/+", "").split("/");
+
+
         if (pathParts.length < 2){
             sendHttpNotFound(socket, "length of path is less than 2");
             return;
@@ -39,14 +56,18 @@ public class GetHandler {
 
         if (pathParts[0].equals("notifications")){
             if (pathParts[1].equals("get")){
-                getNotificationsForClient(socket, Integer.parseInt(pathParts[2]), db);
+                getNotificationsForClient(socket, CLIENT_ID, db);
+
+                if (IS_DEBUG)
+                    System.out.println("Handled notifications for client " + path);
+
                 return;
             } else {
                 sendHttpNotFound(socket);
             }
         }
 
-        getNotificationsForClient(socket, CLIENT_ID, db);
+
     }
 
 

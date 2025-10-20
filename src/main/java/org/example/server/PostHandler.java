@@ -5,27 +5,20 @@ import org.example.structures.NotificationInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
 public class PostHandler {
-    int CLIENT_ID = 1234;
+    final int CLIENT_ID = 1234;
 
-
-    void handlePost(Socket socket, DataBaseWrapper db, String jsonBody) {
-
-    }
-
-
-    ArrayList<NotificationInfo> postNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody) {
-        //jsonBody - bites of an array of notifications
-
+    public static ArrayList<NotificationInfo> fromByte2Array(String jsonBody, int clientID) {
         ArrayList<NotificationInfo> notifications = new ArrayList<>();
 
         JSONArray array = new JSONArray(jsonBody);
         for (int i = 0; i < array.length(); i++) {
             JSONObject obj = array.getJSONObject(i);
-            NotificationInfo n = new NotificationInfo(this.CLIENT_ID,
+            NotificationInfo n = new NotificationInfo(clientID,
                     obj.getInt("id"),
                     obj.getString("title"),
                     obj.getString("payload"),
@@ -37,6 +30,39 @@ public class PostHandler {
 
         return notifications;
 
-        db.
     }
+
+
+
+    void handlePost(Socket socket, DataBaseWrapper db, String jsonBody) {
+
+    }
+
+
+    public void  postNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody) {
+        //jsonBody - bites of an array of notifications
+
+        int clientID = this.CLIENT_ID; // FIXME: add aunthificator
+
+
+
+        db.putNotifications(fromByte2Array(jsonBody, clientID), clientID);
+
+        try(OutputStream out = socket.getOutputStream()){
+            String body = "Dear client " + clientID + ", your notifications have been added successfully.\r\n";
+
+            String response = "HTTP/1.1 200 OK\r\n" +
+                    "Content-Type: text/plain\r\n" +
+                    "Content-Length: " + body.length() + "\r\n" +
+                    "\r\n" +
+                    body;
+
+            out.write(response.getBytes());
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

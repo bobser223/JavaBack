@@ -5,16 +5,49 @@ import org.example.structures.NotificationInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+
+import static org.example.server.HttpServer.sendHttpAuthError;
+import static org.example.server.HttpServer.sendHttpNotFound;
 
 public class GetHandler {
 
     int CLIENT_ID = 1234;
 
 
+
+
+
+    static void main(String[] args) {
+    }
+
+    void handleGet(Socket socket, DataBaseWrapper db, BufferedReader in, String[] basicInfo) throws IOException {
+
+
+        String path = basicInfo[1];
+
+
+        String[] pathParts = path.split("/");
+        if (pathParts.length < 2){
+            sendHttpNotFound(socket, "length of path is less than 2");
+            return;
+        }
+
+        if (pathParts[0].equals("notifications")){
+            if (pathParts[1].equals("get")){
+                getNotificationsForClient(socket, Integer.parseInt(pathParts[2]), db);
+                return;
+            } else {
+                sendHttpNotFound(socket);
+            }
+        }
+
+        getNotificationsForClient(socket, CLIENT_ID, db);
+    }
 
 
 

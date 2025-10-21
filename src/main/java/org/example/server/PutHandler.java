@@ -11,6 +11,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 import static org.example.server.HttpServer.sendHttpNotFound;
+import static org.example.server.HttpServer.sendHttpOk;
 
 public class PutHandler {
     final int CLIENT_ID = 1234;
@@ -35,7 +36,7 @@ public class PutHandler {
 
     }
 
-    void handlePut(Socket socket, DataBaseWrapper db, String jsonBody, int clientID, String[] parsedHTTP) {
+    void handlePut(Socket socket, DataBaseWrapper db, int clientID, String[] parsedHTTP) {
         String path = parsedHTTP[1];
 
 
@@ -51,7 +52,7 @@ public class PutHandler {
         if (pathParts[0].equals("notifications")){
             if (pathParts[1].equals("put")){
                 Logger.info("Putting notifications from client " + clientID);
-                putNotificationFromClient(socket, db, jsonBody, clientID);
+                putNotificationFromClient(socket, db, parsedHTTP[5], clientID);
                 Logger.info("Putting notifications from client " + clientID + " finished");
             } else {
                 sendHttpNotFound(socket);
@@ -66,6 +67,13 @@ public class PutHandler {
 
 
         Logger.info("Putting notifications from client " + clientID);
+
+        if (jsonBody == null || jsonBody.isEmpty()) {
+            Logger.error("jsonBody is empty");
+            sendHttpOk(socket, "but jsonBody is empty");
+            return;
+        }
+
         db.putNotifications(fromByte2Array(jsonBody, clientID), clientID);
 
         try(OutputStream out = socket.getOutputStream()){

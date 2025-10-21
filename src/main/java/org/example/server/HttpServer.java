@@ -2,6 +2,7 @@ package org.example.server;
 
 import org.example.db.DataBaseWrapper;
 import org.example.logger.Logger;
+import org.sqlite.core.DB;
 
 import java.io.*;
 import java.net.*;
@@ -35,35 +36,41 @@ public class HttpServer {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              OutputStream out = socket.getOutputStream()) {
 
-            String[] basicInfo = HttpParser.parseHTTP(in, socket);
+            String[] parsedHTTP = HttpParser.parseHTTP(in, socket);
 
 
                                                                  //user        password
-            byte isAuthenticated = Authenticator.isAuthenticated(basicInfo[3], basicInfo[4], db);
+            byte isAuthenticated = Authenticator.isAuthenticated(parsedHTTP[3], parsedHTTP[4], db);
             if (isAuthenticated == 0) {
-                sendHttpAuthError(socket, "wrong credentials");
+                sendHttpAuthError(socket, "wrong credentials (authenticator)");
+                return;
+            }
+            int clientID = db.getClientID(parsedHTTP[3], parsedHTTP[4]);
+            if (clientID == -1) {
+                sendHttpAuthError(socket, "wrong credentials (id finder)");
                 return;
             }
 
-            for (String parts: basicInfo){
+            for (String parts: parsedHTTP){
                 System.out.println("Info " + parts);
             }
 
-            //method
-            if (basicInfo[0].equals("GET")) {
-                System.out.println("GET");
+                //method
+            if (parsedHTTP[0].equals("GET")) {
+                Logger.info("GET");
 
                 GetHandler getHandler = new GetHandler();
-                getHandler.handleGet(socket, db, in, basicInfo);
+                getHandler.handleGet(socket, db, in, parsedHTTP);
 
-                socket.close();
+//                socket.close();
                 return;
 
-                //method
-            } else if (basicInfo[0].equals("PUT")) {
-                System.out.println("PUT");
+                      //method
+            } else if (parsedHTTP[0].equals("PUT")) {
+                Logger.info("PUT");
                 PutHandler putHandler = new PutHandler();
-
+                putHandler.handlePut(socket, db, clientID, parsedHTTP);
+                return;
             }  else {
                 out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
                 out.flush();
@@ -71,20 +78,20 @@ public class HttpServer {
             }
 
             // Пропускаємо заголовки
-            while (in.ready())
-                System.out.println(in.readLine());
+//            while (in.ready())
+//                System.out.println(in.readLine());
 
 
             // Відповідь
-            String response = """
-                HTTP/1.1 200 OK
-                Content-Type: text/plain
-                Content-Length: 13
-
-                Hello, pipka!
-                """;
-            out.write(response.getBytes());
-            out.flush();
+//            String response = """
+//                HTTP/1.1 200 OK
+//                Content-Type: text/plain
+//                Content-Length: 13
+//
+//                Hello, pipka!
+//                """;
+//            out.write(response.getBytes());
+//            out.flush();
 
         } catch (IOException e) {
             e.printStackTrace();

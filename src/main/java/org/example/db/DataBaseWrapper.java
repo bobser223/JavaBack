@@ -1,5 +1,6 @@
 package org.example.db;
 
+import org.example.logger.Logger;
 import org.example.structures.NotificationInfo;
 
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,26 @@ public class DataBaseWrapper { //TODO: implement database wrapper
     String url = "jdbc:sqlite:sample.db";
     private Connection conn;
 
+    public static void main(String[] args){
+        demo();
+    }
+
+    public static void demo(){
+        DataBaseWrapper db = new DataBaseWrapper();
+        demo(db);
+    }
+
+    public static void demo(DataBaseWrapper db){
+        db.setAuthenticationDB();
+        db.setNotificationsDB();
+        db.addClient("admin", "admin", 1);
+        db.addClient("Basic", "bXl1c2VyOm15cGFzcw==", 0);
+        db.addClient("user", "user", 1);
+        db.printAuthTable();
+        db.printNotificationsTable();
+//        db.closeDbConnection();
+    }
+
     public DataBaseWrapper() {
         connect();
     }
@@ -21,21 +42,11 @@ public class DataBaseWrapper { //TODO: implement database wrapper
         connect();
     }
 
-    public static void main(String[] args){
-        DataBaseWrapper db = new DataBaseWrapper();
-        db.setAuthenticationDB();
-        db.setNotificationsDB();
-
-
-        db.closeDbConnection();
-    }
-
     public static String sha256(String input) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(hash);
     }
-
 
     public void closeDbConnection(){
         try {
@@ -146,11 +157,13 @@ public class DataBaseWrapper { //TODO: implement database wrapper
         }
     }
 
-
     public int findClient(String username, String password) {
         try {
             String usernameHash = sha256(username);
             String passwordHash = sha256(password);
+
+            if (usernameHash == null || passwordHash == null) return 0;
+            Logger.info("Authenticating usernameHash =" + usernameHash + " passwordHash = " + passwordHash);
 
             String query = "SELECT * FROM authentications WHERE usernameHash = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
@@ -170,11 +183,25 @@ public class DataBaseWrapper { //TODO: implement database wrapper
         }
     }
 
-
     public void putNotifications(ArrayList<NotificationInfo> notifications, int clientID) {
+        try {
+            String query = "INSERT INTO notifications (clientId, notificationId, title, payload, fire_at) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            for (NotificationInfo n : notifications) {
+                stmt.setInt(1, clientID);
+                stmt.setInt(2, n.getNotificationID());
+                stmt.setString(3, n.getTitle());
+                stmt.setString(4, n.getPayload());
+                stmt.setLong(5, n.getFireAt());
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+            stmt.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
-
 
     public void printAuthTable() {
         String query = "SELECT * FROM authentications";

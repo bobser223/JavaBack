@@ -1,6 +1,7 @@
 package org.example.server;
 
 import org.example.db.DataBaseWrapper;
+import org.example.logger.Logger;
 import org.example.structures.NotificationInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,10 +40,10 @@ public class GetHandler {
     static void main(String[] args) {
     }
 
-    void handleGet(Socket socket, DataBaseWrapper db, BufferedReader in, String[] basicInfo) throws IOException {
+    void handleGet(Socket socket, DataBaseWrapper db, BufferedReader in, String[] parsedHTTP) throws IOException {
 
 
-        String path = basicInfo[1];
+        String path = parsedHTTP[1];
 
 
         // Нормалізуємо шлях
@@ -51,16 +52,15 @@ public class GetHandler {
 
         if (pathParts.length < 2){
             sendHttpNotFound(socket, "length of path is less than 2");
+            Logger.error("length of path is less than 2");
             return;
         }
 
         if (pathParts[0].equals("notifications")){
             if (pathParts[1].equals("get")){
+                Logger.info("Getting notifications for client " + CLIENT_ID);
                 getNotificationsForClient(socket, CLIENT_ID, db);
-
-                if (IS_DEBUG)
-                    System.out.println("Handled notifications for client " + path);
-
+                Logger.info("Getting notifications for client " + CLIENT_ID + " finished");
                 return;
             } else {
                 sendHttpNotFound(socket);

@@ -1,6 +1,7 @@
 package org.example.server;
 
 import org.example.db.DataBaseWrapper;
+import org.example.logger.Logger;
 import org.example.structures.NotificationInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -8,6 +9,8 @@ import org.json.JSONObject;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+
+import static org.example.server.HttpServer.sendHttpNotFound;
 
 public class PutHandler {
     final int CLIENT_ID = 1234;
@@ -32,20 +35,37 @@ public class PutHandler {
 
     }
 
+    void handlePut(Socket socket, DataBaseWrapper db, String jsonBody, int clientID, String[] parsedHTTP) {
+        String path = parsedHTTP[1];
 
 
-    void handlePut(Socket socket, DataBaseWrapper db, String jsonBody) {
+        // Нормалізуємо шлях
+        String[] pathParts = path.replaceFirst("^/+", "").split("/");
+
+        if (pathParts.length < 2){
+            sendHttpNotFound(socket, "length of path is less than 2");
+            Logger.error("length of path is less than 2");
+            return;
+        }
+
+        if (pathParts[0].equals("notifications")){
+            if (pathParts[1].equals("put")){
+                Logger.info("Putting notifications from client " + clientID);
+                putNotificationFromClient(socket, db, jsonBody, clientID);
+                Logger.info("Putting notifications from client " + clientID + " finished");
+            } else {
+                sendHttpNotFound(socket);
+            }
+        }
 
     }
 
 
-    public void  putNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody) {
+    public void  putNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody, int clientID) {
         //jsonBody - bites of an array of notifications
 
-        int clientID = this.CLIENT_ID; // FIXME: add aunthificator
 
-
-
+        Logger.info("Putting notifications from client " + clientID);
         db.putNotifications(fromByte2Array(jsonBody, clientID), clientID);
 
         try(OutputStream out = socket.getOutputStream()){

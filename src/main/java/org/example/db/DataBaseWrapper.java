@@ -48,6 +48,13 @@ public class DataBaseWrapper { //TODO: implement database wrapper
         return HexFormat.of().formatHex(hash);
     }
 
+    private ResultSet queryUserByUsernameHash(String usernameHash) throws SQLException {
+        String query = "SELECT id, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?";
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setString(1, usernameHash);
+        return stmt.executeQuery(); // ВАЖЛИВО: викликаючий код має закрити stmt/rs (через try-with-resources)
+    }
+
     public void closeDbConnection(){
         try {
             if (conn != null && !conn.isClosed()) {
@@ -163,22 +170,21 @@ public class DataBaseWrapper { //TODO: implement database wrapper
             String passwordHash = sha256(password);
 
             if (usernameHash == null || passwordHash == null) return 0;
-            Logger.info("Authenticating usernameHash =" + usernameHash + " passwordHash = " + passwordHash);
+            Logger.info("finding client with  usernameHash -> " + usernameHash + " passwordHash -> " + passwordHash);
 
-            String query = "SELECT * FROM authentications WHERE usernameHash = ?";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, usernameHash);
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "SELECT id, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
+                stmt.setString(1, usernameHash);
+                try (ResultSet rs = stmt.executeQuery()) {
 
-            ResultSet rs = stmt.executeQuery();
-
-            if (!rs.next()) return 0; // no user found
-
-            if (!rs.getString("passwordHash").equals(passwordHash)) return -1; // incorrect password
-
-            return rs.getInt("isAdmin") == 1 ? 2 : 1; // 2 = admin, 1 = user
+                    if (!rs.next()) return 0; // no user found
+                    if (!rs.getString("passwordHash").equals(passwordHash)) return -1; // incorrect password
+                    return rs.getInt("isAdmin") == 1 ? 2 : 1; // 2 = admin, 1 = user
+                }
+            }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error("findClient failed: " + e.getMessage());
             return 0;
         }
     }
@@ -248,6 +254,40 @@ public class DataBaseWrapper { //TODO: implement database wrapper
             }
         } catch (SQLException e) {
             System.out.println("Failed to read notifications: " + e.getMessage());
+        }
+    }
+
+    public int getClientID(String username, String password) {
+        try {
+            String usernameHash = sha256(username);
+            String passwordHash = sha256(password);
+
+            if (usernameHash == null || passwordHash == null) return 0;
+            Logger.info("finding client with  usernameHash -> " + usernameHash + " passwordHash -> " + passwordHash);
+
+            try (PreparedStatement stmt = conn.prepareStatement(
+                    "SELECT id, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
+                stmt.setString(1, usernameHash);
+                try (ResultSet rs = stmt.executeQuery()) {
+
+                    if (!rs.next()) {
+                        Logger.warn("Client wasn't found " + username);
+                        return -1;
+                    }
+
+                    if (rs.getString("id") == null) {
+                        Logger.error("Client was found, but id is missing (problem with db) " + username);
+                        return -1;
+                    }
+
+                    Logger.info("Client was found " + username + " id: " + rs.getString("id"));
+                    return Integer.parseInt(rs.getString("id"));
+                }
+            }
+
+        } catch (Exception e) {
+            Logger.error("getting id failed: " + e.getMessage());
+            return -1;
         }
     }
 

@@ -150,25 +150,45 @@ public class HttpServer {
         sendHttpAuthError(socket, "");
     }
 
-    public static String[] parseHTTP(BufferedReader in, Socket socket) throws IOException {
-        String requestLine = in.readLine();  // e.g. "PUT /notifications/add HTTP/1.1"
-        String[] parts = requestLine.split(" "); // split by spaces
+    static String[] parseHTTP(BufferedReader in, Socket socket) throws IOException {
+        String requestLine = in.readLine();  // "GET /... HTTP/1.1"
+        String[] parts = requestLine.split(" ", 3);
+        String method  = parts[0];
+        String path    = parts.length > 1 ? parts[1] : "/";
+        String version = parts.length > 2 ? parts[2] : "";
 
-        String method = parts[0]; // "PUT"
-        String path   = parts[1]; // "/notifications/get"
-        String version = parts.length > 2 ? parts[2] : ""; // "HTTP/1.1"
+        String authorization = null;
 
-        in.readLine(); // skip host
-        String[] auth = in.readLine().split(" ");
-        if (auth.length != 3){
-            sendHttpAuthError(socket, "wrong parameters length");
+        // Читаємо заголовки до порожнього рядка
+        String line;
+        while ((line = in.readLine()) != null && !line.isEmpty()) {
+            if (line.regionMatches(true, 0, "Authorization:", 0, "Authorization:".length())) {
+                authorization = line.substring("Authorization:".length()).trim(); // "Basic <b64>"
+            }
         }
 
-        String username = auth[1];
-        String password = auth[2];
+        if (authorization == null || !authorization.startsWith("Basic ")) {
+            sendHttpAuthError(socket, "Missing Basic auth");
+            return new String[]{method, path, version, "", ""};
+        }
+
+        String b64 = authorization.substring("Basic ".length()).trim();
+        String userPass = new String(java.util.Base64.getDecoder().decode(b64), java.nio.charset.StandardCharsets.UTF_8);
+
+        // розбиваємо тільки по першій двокрапці
+        int colon = userPass.indexOf(':');
+        if (colon < 0) {
+            sendHttpAuthError(socket, "Malformed credentials");
+            return new String[]{method, path, version, "", ""};
+        }
+        String username = userPass.substring(0, colon);
+        String password = userPass.substring(colon + 1);
+
+        Logger.info("parced HTTP request: " + method + " " + path + " " + version + " " + username + " " + password);
 
         return new String[]{method, path, version, username, password};
-    } //fixme: shity parser
+    }
+
 
 
 

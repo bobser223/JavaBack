@@ -26,7 +26,7 @@ public class DataBaseWrapper { //TODO: implement database wrapper
         db.setAuthenticationDB();
         db.setNotificationsDB();
         db.addClient("admin", "admin", 1);
-        db.addClient("Basic", "bXl1c2VyOm15cGFzcw==", 0);
+        db.addClient("myuser", "mypass", 0);
         db.addClient("user", "user", 1);
         db.printAuthTable();
         db.printNotificationsTable();

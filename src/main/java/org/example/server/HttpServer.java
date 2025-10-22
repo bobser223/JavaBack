@@ -2,7 +2,6 @@ package org.example.server;
 
 import org.example.db.DataBaseWrapper;
 import org.example.logger.Logger;
-import org.sqlite.core.DB;
 
 import java.io.*;
 import java.net.*;
@@ -12,24 +11,28 @@ import java.net.*;
 
 public class HttpServer {
 
-    int CLIENT_ID = 1234;
 
     String host = "1488";
     static int port = 1488;
+    static boolean isRunning = true;
 
-    public static void main(String[] args) throws IOException {
-        ServerSocket server = new ServerSocket(port);
-        System.out.println("Server started on port " + port);
+    public static void main(String[] args){
+        try (ServerSocket server = new ServerSocket(port)){
+            System.out.println("Server started on port " + port);
 
-        DataBaseWrapper db = new DataBaseWrapper();
-        DataBaseWrapper.demo(db);
+            DataBaseWrapper db = new DataBaseWrapper();
+            DataBaseWrapper.demo(db);
 
 
 
-        while (true) {
-            Socket socket = server.accept();
-            new Thread(() -> handleClient(socket, db)).start();
+            while (isRunning) {
+                Socket socket = server.accept();
+                new Thread(() -> handleClient(socket, db)).start();
+            }
+        } catch (IOException e) {
+            Logger.error("Error while starting server: " + e.getMessage());
         }
+
     }
 
     static void handleClient(Socket socket, DataBaseWrapper db) {
@@ -60,9 +63,8 @@ public class HttpServer {
                 Logger.info("GET");
 
                 GetHandler getHandler = new GetHandler();
-                getHandler.handleGet(socket, db, in, parsedHTTP);
+                getHandler.handleGet(socket, db, parsedHTTP);
 
-//                socket.close();
                 return;
 
                       //method
@@ -76,25 +78,8 @@ public class HttpServer {
                 out.flush();
                 return;
             }
-
-            // Пропускаємо заголовки
-//            while (in.ready())
-//                System.out.println(in.readLine());
-
-
-            // Відповідь
-//            String response = """
-//                HTTP/1.1 200 OK
-//                Content-Type: text/plain
-//                Content-Length: 13
-//
-//                Hello, pipka!
-//                """;
-//            out.write(response.getBytes());
-//            out.flush();
-
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error while handling client: " + e.getMessage());
         }
     }
 
@@ -111,7 +96,7 @@ public class HttpServer {
             out.write(body);
             out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error while sending 404: " + e.getMessage());
         }
     }
 
@@ -132,7 +117,7 @@ public class HttpServer {
             out.write(body);
             out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error while sending 200: " + e.getMessage());
         }
     }
 
@@ -149,17 +134,13 @@ public class HttpServer {
             out.write(body);
             out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error while sending 401: " + e.getMessage());
         }
+
     }
 
     static void sendHttpAuthError(Socket socket) {
         sendHttpAuthError(socket, "");
     }
-
-
-
-
-
 
 }

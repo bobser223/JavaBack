@@ -12,10 +12,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
-import static org.example.Main.IS_DEBUG;
-import static org.example.server.HttpServer.sendHttpAuthError;
 import static org.example.server.HttpServer.sendHttpNotFound;
-import static org.example.server.HttpServer.sendHttpOk;
+
 
 
 public class GetHandler {
@@ -37,10 +35,10 @@ public class GetHandler {
 
 
 
-    static void main(String[] args) {
+    static public void main(String[] args) {
     }
 
-    void handleGet(Socket socket, DataBaseWrapper db, BufferedReader in, String[] parsedHTTP) throws IOException {
+    void handleGet(Socket socket, DataBaseWrapper db, String[] parsedHTTP) throws IOException {
 
 
         String path = parsedHTTP[1];

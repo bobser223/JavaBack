@@ -160,7 +160,7 @@ public class DataBaseWrapper { //TODO: implement database wrapper
             stmt.close();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error("addClient failed: " + e.getMessage());
         }
     }
 
@@ -204,7 +204,7 @@ public class DataBaseWrapper { //TODO: implement database wrapper
             stmt.executeBatch();
             stmt.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error("putNotifications failed: " + e.getMessage());
         }
 
     }

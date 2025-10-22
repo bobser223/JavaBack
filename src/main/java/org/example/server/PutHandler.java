@@ -14,7 +14,6 @@ import static org.example.server.HttpServer.sendHttpNotFound;
 import static org.example.server.HttpServer.sendHttpOk;
 
 public class PutHandler {
-    final int CLIENT_ID = 1234;
 
     public static ArrayList<NotificationInfo> fromByte2Array(String jsonBody, int clientID) {
         ArrayList<NotificationInfo> notifications = new ArrayList<>();
@@ -88,7 +87,7 @@ public class PutHandler {
             out.write(response.getBytes());
             out.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+            Logger.error("putting notifications failed: " + e.getMessage());
         }
     }
 

@@ -35,6 +35,8 @@ public class HttpServer {
 
     }
 
+
+
     static void handleClient(Socket socket, DataBaseWrapper db) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              OutputStream out = socket.getOutputStream()) {
@@ -42,50 +44,74 @@ public class HttpServer {
             String[] parsedHTTP = HttpParser.parseHTTP(in, socket);
 
 
-                                                                 //user        password
-            byte isAuthenticated = Authenticator.isAuthenticated(parsedHTTP[3], parsedHTTP[4], db);
-            if (isAuthenticated == 0) {
-                sendHttpAuthError(socket, "wrong credentials (authenticator)");
-                return;
-            }
-            int clientID = db.getClientID(parsedHTTP[3], parsedHTTP[4]);
-            if (clientID == -1) {
-                sendHttpAuthError(socket, "wrong credentials (id finder)");
-                return;
-            }
+
+
+            int[] AuthAndId = produceAuthAndGetId(parsedHTTP[3], parsedHTTP[4], db);
+            int isAuthenticated = AuthAndId[0];
+            int clientID = AuthAndId[1];
 
             for (String parts: parsedHTTP){
-                System.out.println("Info " + parts);
+                Logger.info(parts);
             }
 
+                    //method
+            switch (parsedHTTP[0]) {
+                case "GET" -> {
+
+                    if (isAuthenticated == 0) {
+                        sendHttpAuthError(socket, "wrong credentials (authenticator)");
+                        return;
+                    }
+
+                    Logger.info("GET");
+
+                    GetHandler getHandler = new GetHandler();
+                    getHandler.handleGet(socket, db, parsedHTTP);
+
+                    Logger.info("############### GET finished ################");
+                }
+
                 //method
-            if (parsedHTTP[0].equals("GET")) {
-                Logger.info("GET");
+                case "PUT" -> {
 
-                GetHandler getHandler = new GetHandler();
-                getHandler.handleGet(socket, db, parsedHTTP);
+                    if (isAuthenticated == 0) {
+                        sendHttpAuthError(socket, "wrong credentials (authenticator)");
+                        return;
+                    }
 
-                return;
+                    Logger.info("PUT");
+                    PutHandler putHandler = new PutHandler();
+                    putHandler.handlePut(socket, db, clientID, parsedHTTP);
 
-                      //method
-            } else if (parsedHTTP[0].equals("PUT")) {
-                Logger.info("PUT");
-                PutHandler putHandler = new PutHandler();
-                putHandler.handlePut(socket, db, clientID, parsedHTTP);
-                return;
-            } else if (parsedHTTP[0].equals("POST")){
-                Logger.info("POST");
-                PostHandler postHandler = new PostHandler();
-                postHandler.handlePost(socket, db, parsedHTTP);
+                    Logger.info("############### PUT finished ################");
 
-            }else {
-                out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
-                out.flush();
-                return;
+                }
+                case "POST" -> {
+
+                    Logger.info("POST");
+                    PostHandler postHandler = new PostHandler();
+                    postHandler.handlePost(socket, db, parsedHTTP);
+
+                    Logger.info("############## POST finished ################");
+                }
+                default -> {
+                    out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
+                    out.flush();
+                    Logger.info("############## Method not found ###################");
+                }
             }
         } catch (IOException e) {
             Logger.error("Error while handling client: " + e.getMessage());
         }
+    }
+
+    static int[] produceAuthAndGetId(String name, String pass,DataBaseWrapper db){
+        byte isAuthenticated = Authenticator.isAuthenticated(name, pass, db);
+
+        if (isAuthenticated == 0)
+            return new int[]{isAuthenticated, -1};
+        int id = db.getClientID(name, pass);
+        return new int[]{isAuthenticated, id};
     }
 
     static void sendHttpNotFound(Socket socket, String message) {
@@ -146,6 +172,27 @@ public class HttpServer {
 
     static void sendHttpAuthError(Socket socket) {
         sendHttpAuthError(socket, "");
+    }
+
+    static void sendHttpAccepted(Socket socket, String message) {
+        try (OutputStream out = socket.getOutputStream()) {
+            byte[] body = message.getBytes();
+            String response = "HTTP/1.1 202 ACCEPTED\r\n" +
+                    "Content-Type: text/plain\r\n" +
+                    "Content-Length: " + body.length + "\r\n" +
+                    "Connection: close\r\n" +
+                    "\r\n";
+
+            out.write(response.getBytes());
+            out.write(body);
+            out.flush();
+        } catch (IOException e) {
+            Logger.error("Error while sending 202: " + e.getMessage());
+        }
+    }
+
+    static void sendHttpAccepted(Socket socket) {
+        sendHttpAccepted(socket, "");
     }
 
 }

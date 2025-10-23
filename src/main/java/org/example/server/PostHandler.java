@@ -6,8 +6,7 @@ import org.json.JSONObject;
 
 import java.net.Socket;
 
-import static org.example.server.HttpServer.sendHttpNotFound;
-import static org.example.server.HttpServer.sendHttpOk;
+import static org.example.server.HttpServer.*;
 
 public class PostHandler {
 
@@ -28,10 +27,20 @@ public class PostHandler {
 
         if (pathParts[0].equals("users")){
             if (pathParts[1].equals("add")){
+
                 String[] authData = parseJson2Auth(parsedHTTP[5]);
+
+                if (Authenticator.isAuthenticated(authData[0], authData[1], db) != 0){
+                    sendHttpAccepted(socket, "User already exists");
+                    return;
+                }
+
                 Logger.info("Adding user " + authData[0]);
-                db.addClient(authData[0], authData[1], Integer.parseInt(authData[2]));
+                Logger.info("Admin status = " + authData[2]);
+                db.addClient(authData[0], authData[1], Integer.parseInt(authData[2])); //BUG: user can add an admin!!!
                 Logger.info("Adding user " + authData[0] + " finished");
+
+                sendHttpOk(socket, "user " + authData[0] + " added");
             }
         }
 
@@ -45,7 +54,7 @@ public class PostHandler {
         {
             "username": "volodymyr",
             "password": "secret123",
-            "isAdmin": 1
+            "isAdmin": 1 -shit
         }
          */
 
@@ -59,7 +68,12 @@ public class PostHandler {
             // Extract the username and password
             String username = obj.getString("username");
             String password = obj.getString("password");
-            String isAdmin = obj.getString("isAdmin");
+            String isAdmin = String.valueOf(obj.getInt("isAdmin"));
+
+
+            Logger.info("username -> " + username);
+            Logger.info("password -> " + password);
+            Logger.info("isAdmin -> " + isAdmin);
 
             // Store the values in the array
             authData[0] = username;

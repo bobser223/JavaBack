@@ -35,7 +35,7 @@ public class PutHandler {
 
     }
 
-    void handlePut(Socket socket, DataBaseWrapper db, int clientID, String[] parsedHTTP) {
+    void handlePut(Socket socket, DataBaseWrapper db, int clientID, String[] parsedHTTP) { //TODO: make the method static
         String path = parsedHTTP[1];
 
 

@@ -38,7 +38,7 @@ public class GetHandler {
     static public void main(String[] args) {
     }
 
-    void handleGet(Socket socket, DataBaseWrapper db, String[] parsedHTTP) throws IOException {
+    void handleGet(Socket socket, DataBaseWrapper db, String[] parsedHTTP) throws IOException { //TODO: make the method static
 
 
         String path = parsedHTTP[1];

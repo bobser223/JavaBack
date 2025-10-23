@@ -73,7 +73,12 @@ public class HttpServer {
                 PutHandler putHandler = new PutHandler();
                 putHandler.handlePut(socket, db, clientID, parsedHTTP);
                 return;
-            }  else {
+            } else if (parsedHTTP[0].equals("POST")){
+                Logger.info("POST");
+                PostHandler postHandler = new PostHandler();
+                postHandler.handlePost(socket, db, parsedHTTP);
+
+            }else {
                 out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
                 out.flush();
                 return;

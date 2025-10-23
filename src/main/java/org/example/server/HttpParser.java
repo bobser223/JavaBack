@@ -25,52 +25,53 @@ public class HttpParser {
         Integer contentLength = null;
         boolean chunked = false;
 
-        // Читаємо заголовки до порожнього рядка
+        // читаємо заголовки
         String line;
         while ((line = in.readLine()) != null && !line.isEmpty()) {
-            // Authorization
             if (line.regionMatches(true, 0, "Authorization:", 0, "Authorization:".length())) {
-                authorization = line.substring("Authorization:".length()).trim(); // "Basic <b64>"
+                authorization = line.substring("Authorization:".length()).trim();
             }
-            // Content-Length
             if (line.regionMatches(true, 0, "Content-Length:", 0, "Content-Length:".length())) {
                 try {
                     contentLength = Integer.parseInt(line.substring("Content-Length:".length()).trim());
                 } catch (NumberFormatException ignore) {}
             }
-            // Transfer-Encoding
             if (line.regionMatches(true, 0, "Transfer-Encoding:", 0, "Transfer-Encoding:".length())) {
                 String v = line.substring("Transfer-Encoding:".length()).trim();
                 if (v.toLowerCase().contains("chunked")) chunked = true;
             }
         }
 
-        if (authorization == null || !authorization.startsWith("Basic ")) {
-            sendHttpAuthError(socket, "Missing Basic auth");
-            return new String[]{method, path, version, "", "", ""};
+        String username = "";
+        String password = "";
+
+        // Якщо є Basic Auth — розкодовуємо
+        if (authorization != null && authorization.startsWith("Basic ")) {
+            try {
+                String b64 = authorization.substring("Basic ".length()).trim();
+                String userPass = new String(java.util.Base64.getDecoder().decode(b64),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                int colon = userPass.indexOf(':');
+                if (colon >= 0) {
+                    username = userPass.substring(0, colon);
+                    password = userPass.substring(colon + 1);
+                } else {
+                    Logger.warn("Malformed credentials (no colon)");
+                }
+            } catch (IllegalArgumentException e) {
+                Logger.warn("Failed to decode Base64 credentials");
+            }
+        } else {
+            // Без авторизації — просто залишаємо порожні поля
+            Logger.info("No Authorization header provided");
         }
 
-        String b64 = authorization.substring("Basic ".length()).trim();
-        String userPass = new String(java.util.Base64.getDecoder().decode(b64), java.nio.charset.StandardCharsets.UTF_8);
-
-        // розбиваємо тільки по першій двокрапці
-        int colon = userPass.indexOf(':');
-        if (colon < 0) {
-            sendHttpAuthError(socket, "Malformed credentials");
-            return new String[]{method, path, version, "", "", ""};
-        }
-        String username = userPass.substring(0, colon);
-        String password = userPass.substring(colon + 1);
-
-        // Зчитуємо тіло запиту (JSON, текст тощо)
+        // Зчитуємо тіло (навіть без авторизації)
         String body = "";
         if (chunked) {
             body = readChunkedBody(in);
         } else if (contentLength != null && contentLength > 0) {
             body = readFixedLengthBody(in, contentLength);
-        } else {
-            // для деяких клієнтів можуть надсилатись тіла й без цих заголовків — тут
-            // краще не блокуватись; залишимо порожнім.
         }
 
         Logger.info("parsed HTTP request: " + method + " " + path + " " + version + " " + username);

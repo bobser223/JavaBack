@@ -2,15 +2,22 @@ package org.example.server;
 
 import org.example.db.DataBaseWrapper;
 import org.example.logger.Logger;
+import org.example.structures.NotificationInfo;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.Socket;
+import java.util.ArrayList;
 
 import static org.example.server.HttpServer.*;
 
 public class PostHandler {
 
-    public void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP) { //TODO: make the method static
+    public void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP) {
+        handlePost(socket, db, parsedHTTP, 1);
+    }
+
+    public void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP, int userStatus) { //TODO: make the method static
         Logger.info("Putting notifications from client ");
 
         String path = parsedHTTP[1];
@@ -27,6 +34,10 @@ public class PostHandler {
 
         if (pathParts[0].equals("users")){
             if (pathParts[1].equals("add")){
+                if (pathParts.length < 3){
+                    sendHttpNotFound(socket, "Your path is too short");
+                    return;
+                }
 
                 String[] authData = parseJson2Auth(parsedHTTP[5]);
 
@@ -35,12 +46,46 @@ public class PostHandler {
                     return;
                 }
 
-                Logger.info("Adding user " + authData[0]);
-                Logger.info("Admin status = " + authData[2]);
-                db.addClient(authData[0], authData[1], Integer.parseInt(authData[2])); //BUG: user can add an admin!!!
-                Logger.info("Adding user " + authData[0] + " finished");
+                if (pathParts[2].equals("manually")){
+                    Logger.info("Adding user " + authData[0]);
+                    Logger.info("Admin status = " + authData[2]);
+                    db.addClient(authData[0], authData[1], 0);
+                    Logger.info("Adding user " + authData[0] + " finished");
 
-                sendHttpOk(socket, "user " + authData[0] + " added");
+                    sendHttpOk(socket, "user " + authData[0] + " added");
+                }
+
+                else if (pathParts[2].equals("superuser")){
+                    if (userStatus != 2){
+                        sendHttpAuthError(socket, "You are not superuser");
+                        return;
+                    }
+
+                    Logger.info("Adding user " + authData[0]);
+                    Logger.info("Admin status = " + authData[2]);
+                    db.addClient(authData[0], authData[1], authData[2].equals("1") ? 2 : 1); //TODO: rameke it to 1:0
+                    Logger.info("Adding user " + authData[0] + " finished");
+
+                    sendHttpOk(socket, "user " + authData[0] + " added");
+
+                }
+
+
+            }
+
+            if (pathParts[1].equals("delete")){
+                if (userStatus != 2){
+                    sendHttpAuthError(socket, "You are not superuser");
+                }
+
+
+                for (String username: parseJsons2usernames(parsedHTTP[5])){
+                    Logger.info("Deleting user " + username);
+                    db.removeClient(username, "");
+                    Logger.info("Deleting user " + username + " finished");
+                }
+                Logger.info("Deleting users finished");
+
             }
         }
 
@@ -85,4 +130,20 @@ public class PostHandler {
 
         return authData;
     }
+
+    static ArrayList<String> parseJsons2usernames(String jsonBody){
+
+            ArrayList<String> usernames = new ArrayList<>();
+
+            JSONArray array = new JSONArray(jsonBody);
+            for (int i = 0; i < array.length(); i++) {
+
+                usernames.add(array.getJSONObject(i).getString("username"));
+            }
+
+            return usernames;
+
+        }
+
 }
+

@@ -9,7 +9,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HexFormat;
 
-public class DataBaseWrapper { //TODO: implement database wrapper
+public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
     String url = "jdbc:sqlite:sample.db";
     private Connection conn;
 
@@ -161,6 +161,23 @@ public class DataBaseWrapper { //TODO: implement database wrapper
 
         } catch (Exception e) {
             Logger.error("addClient failed: " + e.getMessage());
+        }
+    }
+
+    public void removeClient(String username, String password){
+        int idToDelete = getClientID(username, password);
+
+        if (idToDelete == -1){
+            Logger.error("removeClient failed: client wasn't found");
+            return;
+        }
+
+        String query = "DELETE FROM authentications WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, idToDelete);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            Logger.error("removeClient failed: " + e.getMessage());
         }
     }
 

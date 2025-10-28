@@ -63,7 +63,7 @@ public class PostHandler {
 
                     Logger.info("Adding user " + authData[0]);
                     Logger.info("Admin status = " + authData[2]);
-                    db.addClient(authData[0], authData[1], authData[2].equals("1") ? 2 : 1); //TODO: rameke it to 1:0
+                    db.addClient(authData[0], authData[1], authData[2].equals("1") ? 1 : 0);
                     Logger.info("Adding user " + authData[0] + " finished");
 
                     sendHttpOk(socket, "user " + authData[0] + " added");
@@ -91,8 +91,6 @@ public class PostHandler {
 
 
     }
-
-
 
     static String[] parseJson2Auth(String jsonBody) {
         /*
@@ -146,4 +144,3 @@ public class PostHandler {
         }
 
 }
-

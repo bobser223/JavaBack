@@ -90,9 +90,15 @@ public class HttpServer {
 
                     Logger.info("POST");
                     PostHandler postHandler = new PostHandler();
-                    postHandler.handlePost(socket, db, parsedHTTP);
+                    postHandler.handlePost(socket, db, parsedHTTP, isAuthenticated);
 
                     Logger.info("############## POST finished ################");
+                }
+                case "DELETE" -> {
+                    Logger.info("DELETE");
+                    DeleteHandler deleteHandler = new DeleteHandler();
+                    deleteHandler.handleDelete(socket, db, parsedHTTP, isAuthenticated);
+                    Logger.info("############## DELETE finished ################");
                 }
                 default -> {
                     out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());

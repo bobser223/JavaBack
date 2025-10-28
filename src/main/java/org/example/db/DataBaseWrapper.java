@@ -9,7 +9,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HexFormat;
 
-public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
+public class DataBaseWrapper {
     String url = "jdbc:sqlite:sample.db";
     private Connection conn;
 
@@ -49,7 +49,7 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
     }
 
     private ResultSet queryUserByUsernameHash(String usernameHash) throws SQLException {
-        String query = "SELECT id, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?";
+        String query = "SELECT id, username, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?";
         PreparedStatement stmt = conn.prepareStatement(query);
         stmt.setString(1, usernameHash);
         return stmt.executeQuery(); // ВАЖЛИВО: викликаючий код має закрити stmt/rs (через try-with-resources)
@@ -120,6 +120,7 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
         create table if not exists authentications(
             id integer primary key autoincrement,
             isAdmin integer,
+            username text,
             usernameHash text,
             passwordHash text
         );
@@ -140,6 +141,39 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
         } catch (SQLException e) {
             System.out.println("Statement creation failed: " + e.getMessage());
         }
+        ensureAuthUsernameColumn();
+    }
+
+    private void ensureAuthUsernameColumn() {
+        if (conn == null) return;
+
+        if (hasColumn("authentications", "username")) {
+            return;
+        }
+
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE authentications ADD COLUMN username text");
+            Logger.info("Added username column to authentications table.");
+        } catch (SQLException e) {
+            Logger.warn("Failed to add username column to authentications table: " + e.getMessage());
+        }
+    }
+
+    private boolean hasColumn(String tableName, String columnName) {
+        if (conn == null) return false;
+
+        String pragma = "PRAGMA table_info(" + tableName + ")";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(pragma)) {
+            while (rs.next()) {
+                if (columnName.equalsIgnoreCase(rs.getString("name"))) {
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            Logger.warn("Failed to inspect columns for table " + tableName + ": " + e.getMessage());
+        }
+        return false;
     }
 
     public void addClient(String username, String password, int isAdmin) {
@@ -150,11 +184,12 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
             String usernameHash = sha256(username);
             String passwordHash = sha256(password);
 
-            String query = "INSERT INTO authentications (usernameHash, passwordHash, isAdmin) VALUES (?, ?, ?)";
+            String query = "INSERT INTO authentications ( isAdmin, usernameHash, passwordHash, username) VALUES (?, ?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, usernameHash);
-            stmt.setString(2, passwordHash);
-            stmt.setInt(3, isAdmin);
+            stmt.setInt(1, isAdmin);
+            stmt.setString(2, usernameHash);
+            stmt.setString(3, passwordHash);
+            stmt.setString(4, username);
 
             stmt.executeUpdate();
             stmt.close();
@@ -190,7 +225,7 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
             Logger.info("finding client with  usernameHash -> " + usernameHash + " passwordHash -> " + passwordHash);
 
             try (PreparedStatement stmt = conn.prepareStatement(
-                    "SELECT id, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
+                    "SELECT id, username, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
                 stmt.setString(1, usernameHash);
                 try (ResultSet rs = stmt.executeQuery()) {
 
@@ -235,11 +270,13 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
             while (rs.next()) {
                 int id = rs.getInt("id");
                 int isAdmin = rs.getInt("isAdmin");
+                String username = rs.getString("username");
                 String usernameHash = rs.getString("usernameHash");
                 String passwordHash = rs.getString("passwordHash");
 
                 System.out.println("id=" + id +
                         ", isAdmin=" + isAdmin +
+                        ", username=" + username +
                         ", usernameHash=" + usernameHash +
                         ", passwordHash=" + passwordHash);
             }
@@ -283,7 +320,7 @@ public class DataBaseWrapper { //TODO: set isAdmin to [0|1] NOT [1|2]
             Logger.info("finding client with  usernameHash -> " + usernameHash + " passwordHash -> " + passwordHash);
 
             try (PreparedStatement stmt = conn.prepareStatement(
-                    "SELECT id, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
+                    "SELECT id, username, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
                 stmt.setString(1, usernameHash);
                 try (ResultSet rs = stmt.executeQuery()) {
 

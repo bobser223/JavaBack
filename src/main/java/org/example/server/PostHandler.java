@@ -36,6 +36,7 @@ public class PostHandler {
             if (pathParts[1].equals("add")){
                 if (pathParts.length < 3){
                     sendHttpNotFound(socket, "Your path is too short");
+                    Logger.warn("User's path is too short");
                     return;
                 }
 
@@ -58,6 +59,7 @@ public class PostHandler {
                 else if (pathParts[2].equals("superuser")){
                     if (userStatus != 2){
                         sendHttpAuthError(socket, "You are not superuser");
+                        Logger.warn("User is not superuser");
                         return;
                     }
 
@@ -68,6 +70,10 @@ public class PostHandler {
 
                     sendHttpOk(socket, "user " + authData[0] + " added");
 
+                } else {
+                    sendHttpNotFound(socket, "Unknown path");
+                    Logger.warn("Unknown path");
+                    return;
                 }
 
 
@@ -76,14 +82,18 @@ public class PostHandler {
             if (pathParts[1].equals("delete")){
                 if (userStatus != 2){
                     sendHttpAuthError(socket, "You are not superuser");
+                    Logger.warn("User is not superuser");
+                    return;
                 }
 
-
-                for (String username: parseJsons2usernames(parsedHTTP[5])){
+                ArrayList<String> usernames = parseJsons2usernames(parsedHTTP[5]);
+                for (String username: usernames){
                     Logger.info("Deleting user " + username);
                     db.removeClient(username, "");
                     Logger.info("Deleting user " + username + " finished");
                 }
+
+                sendHttpOk(socket, "Users "+ usernames.toString() + " deleted" );
                 Logger.info("Deleting users finished");
 
             }

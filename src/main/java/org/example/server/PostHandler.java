@@ -9,20 +9,21 @@ import org.json.JSONObject;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import static org.example.parsers.JsonParser.parseJson2Auth;
 import static org.example.server.HttpServer.*;
 
 public class PostHandler {
 
-    public void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP) {
+    public static void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP) {
         handlePost(socket, db, parsedHTTP, 1);
     }
 
-    public void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP, int userStatus) { //TODO: make the method static
+    public static void handlePost(Socket socket, DataBaseWrapper db, String[] parsedHTTP, int userStatus) { //TODO: make the method static
         Logger.info("Putting notifications from client ");
 
         String path = parsedHTTP[1];
 
-        // Нормалізуємо шлях
+
         String[] pathParts = path.replaceFirst("^/+", "").split("/");
 
         if (pathParts.length < 2){
@@ -78,79 +79,19 @@ public class PostHandler {
 
 
             }
-
-            if (pathParts[1].equals("delete")){
-                if (userStatus != 2){
-                    sendHttpAuthError(socket, "You are not superuser");
-                    Logger.warn("User is not superuser");
-                    return;
-                }
-
-                ArrayList<String> usernames = parseJsons2usernames(parsedHTTP[5]);
-                for (String username: usernames){
-                    Logger.info("Deleting user " + username);
-                    db.removeClient(username, "");
-                    Logger.info("Deleting user " + username + " finished");
-                }
-
-                sendHttpOk(socket, "Users "+ usernames.toString() + " deleted" );
-                Logger.info("Deleting users finished");
-
+            else {
+                Logger.warn("Unknown path");
+                sendHttpNotFound(socket, "Unknown path");
+                return;
             }
+        } else {
+            Logger.warn("Unknown path");
+            sendHttpNotFound(socket, "Unknown path");
         }
 
 
     }
 
-    static String[] parseJson2Auth(String jsonBody) {
-        /*
-        {
-            "username": "volodymyr",
-            "password": "secret123",
-            "isAdmin": 1 -shit
-        }
-         */
 
-        String[] authData = new String[3];  // Array to hold username and password
-
-        try {
-
-            // Parse the string into a JSONObject
-            JSONObject obj = new JSONObject(jsonBody);
-
-            // Extract the username and password
-            String username = obj.getString("username");
-            String password = obj.getString("password");
-            String isAdmin = String.valueOf(obj.getInt("isAdmin"));
-
-
-            Logger.info("username -> " + username);
-            Logger.info("password -> " + password);
-            Logger.info("isAdmin -> " + isAdmin);
-
-            // Store the values in the array
-            authData[0] = username;
-            authData[1] = password;
-            authData[2] = isAdmin;
-        } catch (Exception e) {
-            Logger.error("Parsing jsonBody failed: " + e.getMessage());
-        }
-
-        return authData;
-    }
-
-    static ArrayList<String> parseJsons2usernames(String jsonBody){
-
-            ArrayList<String> usernames = new ArrayList<>();
-
-            JSONArray array = new JSONArray(jsonBody);
-            for (int i = 0; i < array.length(); i++) {
-
-                usernames.add(array.getJSONObject(i).getString("username"));
-            }
-
-            return usernames;
-
-        }
 
 }

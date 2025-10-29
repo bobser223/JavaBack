@@ -1,6 +1,7 @@
-package org.example.server;
+package org.example.parsers;
 
 import org.example.logger.Logger;
+import org.example.server.HttpServer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,7 +10,7 @@ import java.net.Socket;
 import static org.example.server.HttpServer.sendHttpAuthError;
 
 public class HttpParser {
-    static String[] parseHTTP(BufferedReader in, Socket socket) throws IOException {
+    public static String[] parseHTTP(BufferedReader in, Socket socket) throws IOException {
         String requestLine = in.readLine();  // "GET /... HTTP/1.1"
         if (requestLine == null) {
             sendHttpAuthError(socket, "Empty request");

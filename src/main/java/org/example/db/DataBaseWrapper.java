@@ -241,7 +241,7 @@ public class DataBaseWrapper {
         }
     }
 
-    public void putNotifications(ArrayList<NotificationInfo> notifications, int clientID) {
+    public void addNotifications(ArrayList<NotificationInfo> notifications, int clientID) {
         try {
             String query = "INSERT INTO notifications (clientId, notificationId, title, payload, fire_at) VALUES (?, ?, ?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(query);
@@ -258,6 +258,33 @@ public class DataBaseWrapper {
         } catch (Exception e) {
             Logger.error("putNotifications failed: " + e.getMessage());
         }
+
+    }
+
+    public void removeNotification(int clientID, int notificationID){
+        if (clientID == -1) //is admin
+        {
+            Logger.info("removing notification " + notificationID + " by admin");
+            String query = "DELETE FROM notifications WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setInt(1, notificationID);
+                stmt.executeUpdate();
+            } catch (SQLException e) {
+                Logger.error("removeNotifications failed: " + e.getMessage());
+            }
+            return;
+        }
+
+        Logger.info("removing notifications for client " + clientID + " notificationId " + notificationID);
+        String query = "DELETE FROM notifications WHERE clientId = ? AND id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, clientID);
+            stmt.setInt(2, notificationID);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            Logger.error("removeNotifications failed: " + e.getMessage());
+        }
+
 
     }
 
@@ -344,6 +371,8 @@ public class DataBaseWrapper {
             return -1;
         }
     }
+
+
 
 
 }

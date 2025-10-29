@@ -29,8 +29,6 @@ public class GetHandler {
     }
      */
 
-    int CLIENT_ID = 1234;
-
 
 
 
@@ -38,7 +36,7 @@ public class GetHandler {
     static public void main(String[] args) {
     }
 
-    void handleGet(Socket socket, DataBaseWrapper db, String[] parsedHTTP) throws IOException { //TODO: make the method static
+    public static void handleGet(Socket socket, DataBaseWrapper db, String[] parsedHTTP) throws IOException { //TODO: make the method static
 
 
         String path = parsedHTTP[1];
@@ -56,9 +54,10 @@ public class GetHandler {
 
         if (pathParts[0].equals("notifications")){
             if (pathParts[1].equals("get")){
-                Logger.info("Getting notifications for client " + CLIENT_ID);
-                getNotificationsForClient(socket, CLIENT_ID, db);
-                Logger.info("Getting notifications for client " + CLIENT_ID + " finished");
+                int clientID = db.getClientID(parsedHTTP[3], parsedHTTP[4]);
+                Logger.info("Getting notifications for client " + clientID);
+                getNotificationsForClient(socket, clientID, db);
+                Logger.info("Getting notifications for client " + clientID + " finished");
                 return;
             } else {
                 sendHttpNotFound(socket);
@@ -70,7 +69,7 @@ public class GetHandler {
 
 
 
-    static void getNotificationsForClient(Socket socket, int clientID, DataBaseWrapper db) {
+    public static void getNotificationsForClient(Socket socket, int clientID, DataBaseWrapper db) {
 
         ArrayList<NotificationInfo> notifications = db.getDbForClient(clientID);
 
@@ -89,7 +88,7 @@ public class GetHandler {
 
 
 
-    static void sendHttpJson(Socket socket, String json) {
+    public static void sendHttpJson(Socket socket, String json) {
         try (OutputStream out = socket.getOutputStream()) {
             String response = "HTTP/1.1 200 OK\r\n" +
                     "Content-Type: application/json\r\n" +

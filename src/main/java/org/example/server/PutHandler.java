@@ -35,7 +35,7 @@ public class PutHandler {
 
     }
 
-    void handlePut(Socket socket, DataBaseWrapper db, int clientID, String[] parsedHTTP) { //TODO: make the method static
+    public static void handlePut(Socket socket, DataBaseWrapper db, int clientID, String[] parsedHTTP) { //TODO: make the method static
         String path = parsedHTTP[1];
 
 
@@ -60,8 +60,7 @@ public class PutHandler {
 
     }
 
-
-    public void  putNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody, int clientID) {
+    public static void  putNotificationFromClient(Socket socket, DataBaseWrapper db, String jsonBody, int clientID) {
         //jsonBody - bites of an array of notifications
 
 
@@ -73,7 +72,7 @@ public class PutHandler {
             return;
         }
 
-        db.putNotifications(fromByte2Array(jsonBody, clientID), clientID);
+        db.addNotifications(fromByte2Array(jsonBody, clientID), clientID);
 
         try(OutputStream out = socket.getOutputStream()){
             String body = "Dear client " + clientID + ", your notifications have been added successfully.\r\n";

@@ -2,11 +2,12 @@ package org.example.server;
 
 import org.example.db.DataBaseWrapper;
 import org.example.logger.Logger;
+import org.example.parsers.HttpParser;
 
 import java.io.*;
 import java.net.*;
 
-
+import static org.example.parsers.HttpParser.parseHTTP;
 
 
 public class HttpServer {
@@ -41,7 +42,7 @@ public class HttpServer {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              OutputStream out = socket.getOutputStream()) {
 
-            String[] parsedHTTP = HttpParser.parseHTTP(in, socket);
+            String[] parsedHTTP = parseHTTP(in, socket);
 
 
 
@@ -64,9 +65,7 @@ public class HttpServer {
                     }
 
                     Logger.info("GET");
-
-                    GetHandler getHandler = new GetHandler();
-                    getHandler.handleGet(socket, db, parsedHTTP);
+                    GetHandler.handleGet(socket, db, parsedHTTP);
 
                     Logger.info("############### GET finished ################");
                 }
@@ -80,8 +79,7 @@ public class HttpServer {
                     }
 
                     Logger.info("PUT");
-                    PutHandler putHandler = new PutHandler();
-                    putHandler.handlePut(socket, db, clientID, parsedHTTP);
+                    PutHandler.handlePut(socket, db, clientID, parsedHTTP);
 
                     Logger.info("############### PUT finished ################");
 
@@ -89,15 +87,13 @@ public class HttpServer {
                 case "POST" -> {
 
                     Logger.info("POST");
-                    PostHandler postHandler = new PostHandler();
-                    postHandler.handlePost(socket, db, parsedHTTP, isAuthenticated);
+                    PostHandler.handlePost(socket, db, parsedHTTP, isAuthenticated);
 
                     Logger.info("############## POST finished ################");
                 }
                 case "DELETE" -> {
                     Logger.info("DELETE");
-                    DeleteHandler deleteHandler = new DeleteHandler();
-                    deleteHandler.handleDelete(socket, db, parsedHTTP, isAuthenticated);
+                    DeleteHandler.handleDelete(socket, db, parsedHTTP, isAuthenticated);
                     Logger.info("############## DELETE finished ################");
                 }
                 default -> {
@@ -158,7 +154,7 @@ public class HttpServer {
         }
     }
 
-    static void sendHttpAuthError(Socket socket, String message) {
+    public static void sendHttpAuthError(Socket socket, String message) {
         try (OutputStream out = socket.getOutputStream()) {
             byte[] body = message.getBytes();
             String response = "HTTP/1.1 401 Unauthorized\r\n" +

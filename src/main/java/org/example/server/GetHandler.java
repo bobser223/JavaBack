@@ -83,7 +83,7 @@ public class GetHandler {
     public static void getNotificationsForClient(Socket socket, int clientID, DataBaseWrapper db) {
 
         ArrayList<NotificationInfo> notifications = db.getDbForClient(clientID);
-
+        Logger.info("Notifications for client " + clientID + " = " + notifications.toString());
         JSONArray jsonArray = new JSONArray();
         for (NotificationInfo n : notifications) {
             JSONObject obj = new JSONObject();

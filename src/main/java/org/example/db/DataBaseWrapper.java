@@ -81,12 +81,32 @@ public class DataBaseWrapper {
     }
 
     public ArrayList<NotificationInfo> getDbForClient(int clientID) {
-
-        NotificationInfo n = new NotificationInfo(clientID, 1, "title", "payload", 123456789);
-        NotificationInfo n2 = new NotificationInfo(clientID, 2, "title2", "payload2", 123456789);
         ArrayList<NotificationInfo> notifications = new ArrayList<>();
-        notifications.add(n);
-        notifications.add(n2);
+
+        if (clientID <= 0) {
+            Logger.warn("getDbForClient called with invalid clientID " + clientID);
+            return notifications;
+        }
+
+        String query = "SELECT notificationId, title, payload, fire_at FROM notifications WHERE clientId = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, clientID);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    NotificationInfo n = new NotificationInfo(
+                            clientID,
+                            rs.getInt("notificationId"),
+                            rs.getString("title"),
+                            rs.getString("payload"),
+                            rs.getLong("fire_at")
+                    );
+                    notifications.add(n);
+                }
+            }
+        } catch (SQLException e) {
+            Logger.error("Failed to read notifications for client " + clientID + ": " + e.getMessage());
+        }
 
         return notifications;
     }

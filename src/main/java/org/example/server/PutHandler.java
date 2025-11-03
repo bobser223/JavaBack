@@ -1,17 +1,17 @@
 package org.example.server;
 
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+
 import org.example.db.DataBaseWrapper;
 import org.example.logger.Logger;
+import static org.example.server.HttpServer.sendHttpNotFound;
+import static org.example.server.HttpServer.sendHttpOk;
 import org.example.structures.NotificationInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.io.OutputStream;
-import java.net.Socket;
-import java.util.ArrayList;
-
-import static org.example.server.HttpServer.sendHttpNotFound;
-import static org.example.server.HttpServer.sendHttpOk;
 
 public class PutHandler {
 
@@ -72,18 +72,33 @@ public class PutHandler {
             return;
         }
 
-        db.addNotifications(fromByte2Array(jsonBody, clientID), clientID);
+        ArrayList<Integer> webIds = db.addNotifications(fromByte2Array(jsonBody, clientID), clientID);
+
+        Logger.info("WebIds = " + webIds);
 
         try(OutputStream out = socket.getOutputStream()){
-            String body = "Dear client " + clientID + ", your notifications have been added successfully.\r\n";
+            JSONObject payload;
+            String statusLine;
 
-            String response = "HTTP/1.1 200 OK\r\n" +
-                    "Content-Type: text/plain\r\n" +
-                    "Content-Length: " + body.length() + "\r\n" +
-                    "\r\n" +
-                    body;
+            
+            payload = new JSONObject()
+                    .put("status", "ok")
+                    .put("clientId", clientID)
+                    .put("webIds", webIds);
+            statusLine = "HTTP/1.1 200 OK\r\n";
+            
 
-            out.write(response.getBytes());
+            byte[] bodyBytes = payload.toString().getBytes(StandardCharsets.UTF_8);
+
+            String headers =
+                    statusLine +
+                    "Content-Type: application/json; charset=utf-8\r\n" +
+                    "Content-Length: " + bodyBytes.length + "\r\n" +
+                    "Connection: close\r\n" +
+                    "\r\n";
+
+            out.write(headers.getBytes(StandardCharsets.US_ASCII));
+            out.write(bodyBytes);
             out.flush();
         } catch (Exception e) {
             Logger.error("putting notifications failed: " + e.getMessage());

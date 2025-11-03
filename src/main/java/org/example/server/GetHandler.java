@@ -6,7 +6,6 @@ import org.example.structures.NotificationInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -62,6 +61,18 @@ public class GetHandler {
             } else {
                 sendHttpNotFound(socket);
             }
+        } else if (pathParts[0].equals("users")){
+            if (pathParts[1].equals("status")){
+                boolean isAdmin = db.findClientStatus(parsedHTTP[3], parsedHTTP[4]) == 2;
+                Logger.info("Client is admin? = " + isAdmin);
+                sendStatus(socket, isAdmin);
+                Logger.info("Client is admin? = " + isAdmin + " finished");
+                return;
+            }
+        } else {
+            sendHttpNotFound(socket);
+
+
         }
 
 
@@ -86,7 +97,20 @@ public class GetHandler {
         sendHttpJson(socket, jsonArray.toString());
     }
 
-
+    public static void sendStatus(Socket socket, boolean status) {
+        String json = "{\"isAdmin\": " + status + "}";
+        try(OutputStream out = socket.getOutputStream()){
+            String response = "HTTP/1.1 200 OK\r\n" +
+                    "Content-Type: application/json\r\n" +
+                    "Content-Length: " + json.getBytes().length + "\r\n" +
+                    "\r\n" +
+                    json;
+            out.write(response.getBytes());
+            out.flush();
+        } catch (IOException e) {
+            Logger.error("Error while sending status: " + e.getMessage());
+        }
+    }
 
     public static void sendHttpJson(Socket socket, String json) {
         try (OutputStream out = socket.getOutputStream()) {
@@ -98,7 +122,8 @@ public class GetHandler {
             out.write(response.getBytes());
             out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error while sending json: " + e.getMessage());
         }
     }
+
 }

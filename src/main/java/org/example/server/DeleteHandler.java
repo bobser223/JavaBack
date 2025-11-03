@@ -74,7 +74,7 @@ public class DeleteHandler {
                 int userID = db.getClientID(parsedHTTP[3], parsedHTTP[4]);
 
                 for (Integer notificationId: notificationsToDelete)
-                    db.removeNotification(userID, notificationId);
+                    db.removeNotification(userStatus==2?-1:userID, notificationId); //TODO: make only userID
 
                 sendHttpOk(socket, "Notifications deleted");
                 Logger.info("Deleting notifications manually finished");

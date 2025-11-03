@@ -1,13 +1,18 @@
 package org.example.db;
 
-import org.example.logger.Logger;
-import org.example.structures.NotificationInfo;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HexFormat;
+
+import org.example.logger.Logger;
+import org.example.structures.NotificationInfo;
 
 public class DataBaseWrapper {
     String url = "jdbc:sqlite:sample.db";
@@ -179,7 +184,7 @@ public class DataBaseWrapper {
     public void addClient(String username, String password, int isAdmin) {
         try {
 
-            if (findClient(username, password) != 0) return;
+            if (findClientStatus(username, password) != 0) return;
 
             String usernameHash = sha256(username);
             String passwordHash = sha256(password);
@@ -216,7 +221,7 @@ public class DataBaseWrapper {
         }
     }
 
-    public int findClient(String username, String password) {
+    public int findClientStatus(String username, String password) {
         try {
             String usernameHash = sha256(username);
             String passwordHash = sha256(password);
@@ -228,8 +233,8 @@ public class DataBaseWrapper {
                     "SELECT id, username, usernameHash, passwordHash, isAdmin FROM authentications WHERE usernameHash = ?")) {
                 stmt.setString(1, usernameHash);
                 try (ResultSet rs = stmt.executeQuery()) {
-
                     if (!rs.next()) return 0; // no user found
+                    Logger.info("Client was found " + username);
                     if (!rs.getString("passwordHash").equals(passwordHash)) return -1; // incorrect password
                     return rs.getInt("isAdmin") == 1 ? 2 : 1; // 2 = admin, 1 = user
                 }
@@ -241,24 +246,39 @@ public class DataBaseWrapper {
         }
     }
 
-    public void addNotifications(ArrayList<NotificationInfo> notifications, int clientID) {
-        try {
-            String query = "INSERT INTO notifications (clientId, notificationId, title, payload, fire_at) VALUES (?, ?, ?, ?, ?)";
-            PreparedStatement stmt = conn.prepareStatement(query);
+    public ArrayList<Integer> addNotifications(ArrayList<NotificationInfo> notifications, int clientID) {
+        if (notifications == null || notifications.isEmpty()) {
+            Logger.warn("addNotifications called with empty notifications list");
+            return new ArrayList<>();
+        }
+
+        String query = "INSERT INTO notifications (clientId, notificationId, title, payload, fire_at) VALUES (?, ?, ?, ?, ?)";
+        ArrayList<Integer> insertedIds = new ArrayList<>();
+
+        try (PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+
             for (NotificationInfo n : notifications) {
                 stmt.setInt(1, clientID);
                 stmt.setInt(2, n.getNotificationID());
                 stmt.setString(3, n.getTitle());
                 stmt.setString(4, n.getPayload());
                 stmt.setLong(5, n.getFireAt());
-                stmt.addBatch();
-            }
-            stmt.executeBatch();
-            stmt.close();
-        } catch (Exception e) {
-            Logger.error("putNotifications failed: " + e.getMessage());
-        }
 
+                stmt.executeUpdate();
+
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        insertedIds.add(rs.getInt(1));
+                    }
+                }
+            }
+
+            return insertedIds;
+
+        } catch (SQLException e) {
+            Logger.error("putNotifications failed: " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     public void removeNotification(int clientID, int notificationID){

@@ -11,7 +11,7 @@ public class Authenticator {
         // 1 - ok
         // 2 - superuser
         Logger.info("Authenticating: username -> " + username + " ;password -> " + password);
-       return db.findClient(username, password) == -1 ? 0: (byte) db.findClient(username, password);
+       return db.findClientStatus(username, password) == -1 ? 0: (byte) db.findClientStatus(username, password);
 
         //return 1;
     }

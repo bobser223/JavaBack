@@ -1,17 +1,16 @@
 package org.example.server;
 
-import org.example.db.DataBaseWrapper;
-import org.example.logger.Logger;
-import org.example.structures.NotificationInfo;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import org.example.db.DataBaseWrapper;
+import org.example.logger.Logger;
 import static org.example.server.HttpServer.sendHttpNotFound;
+import org.example.structures.NotificationInfo;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 
 
@@ -88,6 +87,7 @@ public class GetHandler {
         for (NotificationInfo n : notifications) {
             JSONObject obj = new JSONObject();
             obj.put("id", n.getNotificationID());
+            // obj.put("webId", n.getWe)
             obj.put("title", n.getTitle());
             obj.put("payload", n.getPayload());
             obj.put("fireAt", n.getFireAt());

@@ -88,7 +88,7 @@ public class DataBaseWrapper {
             return notifications;
         }
 
-        String query = "SELECT notificationId, title, payload, fire_at FROM notifications WHERE clientId = ?";
+        String query = "SELECT id, title, payload, fire_at FROM notifications WHERE clientId = ?";
 
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, clientID);
@@ -96,11 +96,12 @@ public class DataBaseWrapper {
                 while (rs.next()) {
                     NotificationInfo n = new NotificationInfo(
                             clientID,
-                            rs.getInt("notificationId"),
+                            rs.getInt("id"),
                             rs.getString("title"),
                             rs.getString("payload"),
                             rs.getLong("fire_at")
                     );
+
                     notifications.add(n);
                 }
             }
